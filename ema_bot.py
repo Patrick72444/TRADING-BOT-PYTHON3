@@ -11,11 +11,12 @@ client = UMFutures(api_key, api_secret, base_url="https://testnet.binancefuture.
 
 symbol = "BTCUSDT"
 
-def get_balance():
+# Función para obtener el balance de USDT disponible
+def get_usdt_balance():
     balances = client.balance()
-    for asset in balances:
-        if asset["asset"] == "USDT":
-            return float(asset["balance"])
+    for b in balances:
+        if b["asset"] == "USDT":
+            return float(b["balance"])
     return 0.0
 
 while True:
@@ -25,23 +26,28 @@ while True:
     try:
         klines = client.klines(symbol, "15m", limit=100)
         print(f"✅ Klines recibidas correctamente. Total: {len(klines)} velas")
-        
-        usdt_balance = get_balance()
-        price = float(client.ticker_price(symbol=symbol)["price"])
-        qty = round(usdt_balance / price, 3)
+    except Exception as e:
+        print(f"❌ Error al obtener klines: {e}")
+        time.sleep(300)
+        continue
 
+    # Obtener balance actual y precio de mercado
+    balance = get_usdt_balance()
+    price = float(client.ticker_price(symbol=symbol)["price"])
+    
+    # Calcular la cantidad a comprar con el 100% del balance
+    quantity = round(balance / price, 3)
+
+    try:
         order = client.new_order(
             symbol=symbol,
             side="BUY",
             type="MARKET",
-            quantity=qty
+            quantity=quantity
         )
-        print(f"✅ Orden de COMPRA ejecutada con {qty} BTC (~{usdt_balance} USDT)")
-
+        print(f"✅ Ejecutando orden de COMPRA por {quantity} BTC (~{balance} USDT)")
     except Exception as e:
-        print(f"❌ Error: {e}")
-        time.sleep(10)
-        continue
+        print(f"❌ Error al colocar orden de compra: {e}")
 
     print("⏳ Esperando 5 minutos...\n")
     time.sleep(10)
