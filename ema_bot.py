@@ -35,8 +35,8 @@ while True:
 
     except Exception as e:
         print(f"❌ Error: {e}")
-        time.sleep(300)
+        time.sleep(5)
         continue
 
     print("⏳ Esperando 5 minutos...\n")
-    time.sleep(300)
+    time.sleep(5)
