@@ -2,62 +2,55 @@ import os
 from dotenv import load_dotenv
 from binance.um_futures import UMFutures
 
-# Configuración
+# Cargar claves desde .env
 load_dotenv()
 api_key = os.getenv("API_KEY")
 api_secret = os.getenv("API_SECRET")
 client = UMFutures(api_key, api_secret, base_url="https://testnet.binancefuture.com")
 
 symbol = "BTCUSDT"
-leverage = 5
 
-# Obtener balance USDT disponible
-balance_data = client.balance()
-usdt_balance = float([x for x in balance_data if x["asset"] == "USDT"][0]["balance"])
+print("🔌 Conectando a Binance Testnet...")
 
-# Calcular capital operable
-capital_operable = usdt_balance * leverage
-print(f"💰 Balance disponible: {usdt_balance:.2f} USDT | Capital apalancado: {capital_operable:.2f} USDT")
+# Obtener balance en USDT
+balance_info = client.balance()
+usdt_balance = next((float(b['balance']) for b in balance_info if b['asset'] == 'USDT'), 0.0)
 
-# Obtener precio actual
+# Obtener precio actual del BTC
 price = float(client.ticker_price(symbol=symbol)["price"])
-print(f"📈 Precio actual: {price} USDT")
 
-# Calcular cantidad en BTC (redondeado a 3 decimales)
-quantity = round(capital_operable / price, 3)
+# Calcular cantidad de BTC a comprar (100% del balance)
+quantity = round(usdt_balance / price, 3)
+print(f"💰 Balance USDT: {usdt_balance:.2f} | Precio BTC: {price:.2f} | Cantidad: {quantity} BTC")
 
-# Calcular los precios de TP y SL
-tp_price = round(price * 1.01, 2)  # +1%
-sl_price = round(price * 0.995, 2)  # -0.5%
-
-# Ejecutar orden de mercado (long)
+# Crear orden de compra
 order = client.new_order(
     symbol=symbol,
     side="BUY",
     type="MARKET",
     quantity=quantity
 )
-print(f"✅ Orden de compra ejecutada: {quantity} BTC a {price} USDT")
+print("✅ Orden de COMPRA ejecutada")
 
-# Colocar TP (limit sell) y SL (stop market sell)
-# TP
+# Calcular valores de SL y TP
+sl_price = round(price * 0.995, 2)  # -0.5%
+tp_price = round(price * 1.01, 2)   # +1%
+
+# Crear orden OCO para cerrar la operación con SL y TP
 client.new_order(
     symbol=symbol,
     side="SELL",
     type="TAKE_PROFIT_MARKET",
     stopPrice=str(tp_price),
-    closePosition=True,
-    timeInForce="GTC"
+    closePosition=True
 )
-
-# SL
 client.new_order(
     symbol=symbol,
     side="SELL",
     type="STOP_MARKET",
     stopPrice=str(sl_price),
-    closePosition=True,
-    timeInForce="GTC"
+    closePosition=True
 )
 
-print(f"🎯 TP colocado en {tp_price} USDT | 🔴 SL colocado en {sl_price} USDT")
+print(f"🎯 TAKE PROFIT colocado en: {tp_price}")
+print(f"🛑 STOP LOSS colocado en: {sl_price}")
