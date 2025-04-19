@@ -2,3 +2,4 @@ python-dotenv
 binance-futures-connector
 pandas
 pandas_ta
+numpy==1.23.5
