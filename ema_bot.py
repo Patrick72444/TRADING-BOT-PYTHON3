@@ -1,54 +1,63 @@
 import os
-import time
 from dotenv import load_dotenv
 from binance.um_futures import UMFutures
 
-# Cargar claves desde .env
+# Configuración
 load_dotenv()
 api_key = os.getenv("API_KEY")
 api_secret = os.getenv("API_SECRET")
 client = UMFutures(api_key, api_secret, base_url="https://testnet.binancefuture.com")
 
 symbol = "BTCUSDT"
+leverage = 5
 
-# Función para obtener el balance de USDT disponible
-def get_usdt_balance():
-    balances = client.balance()
-    for b in balances:
-        if b["asset"] == "USDT":
-            return float(b["balance"])
-    return 0.0
+# Obtener balance USDT disponible
+balance_data = client.balance()
+usdt_balance = float([x for x in balance_data if x["asset"] == "USDT"][0]["balance"])
 
-while True:
-    print("📉 Analizando el mercado...")
-    print("🔌 Conectando a Binance Testnet...")
+# Calcular capital operable
+capital_operable = usdt_balance * leverage
+print(f"💰 Balance disponible: {usdt_balance:.2f} USDT | Capital apalancado: {capital_operable:.2f} USDT")
 
-    try:
-        klines = client.klines(symbol, "15m", limit=100)
-        print(f"✅ Klines recibidas correctamente. Total: {len(klines)} velas")
-    except Exception as e:
-        print(f"❌ Error al obtener klines: {e}")
-        time.sleep(300)
-        continue
+# Obtener precio actual
+price = float(client.ticker_price(symbol=symbol)["price"])
+print(f"📈 Precio actual: {price} USDT")
 
-    # Obtener balance actual y precio de mercado
-    balance = get_usdt_balance()
-    price = float(client.ticker_price(symbol=symbol)["price"])
-    
-    # Calcular la cantidad a comprar con el 100% del balance
-    quantity = round(balance / price, 3)
+# Calcular cantidad en BTC (redondeado a 3 decimales)
+quantity = round(capital_operable / price, 3)
 
-    try:
-        order = client.new_order(
-            symbol=symbol,
-            side="BUY",
-            type="MARKET",
-            quantity=quantity
-        )
-        print(f"✅ Ejecutando orden de COMPRA por {quantity} BTC (~{balance} USDT)")
-    except Exception as e:
-        print(f"❌ Error al colocar orden de compra: {e}")
+# Calcular los precios de TP y SL
+tp_price = round(price * 1.01, 2)  # +1%
+sl_price = round(price * 0.995, 2)  # -0.5%
 
-    print("⏳ Esperando 5 minutos...\n")
-    time.sleep(10)
+# Ejecutar orden de mercado (long)
+order = client.new_order(
+    symbol=symbol,
+    side="BUY",
+    type="MARKET",
+    quantity=quantity
+)
+print(f"✅ Orden de compra ejecutada: {quantity} BTC a {price} USDT")
 
+# Colocar TP (limit sell) y SL (stop market sell)
+# TP
+client.new_order(
+    symbol=symbol,
+    side="SELL",
+    type="TAKE_PROFIT_MARKET",
+    stopPrice=str(tp_price),
+    closePosition=True,
+    timeInForce="GTC"
+)
+
+# SL
+client.new_order(
+    symbol=symbol,
+    side="SELL",
+    type="STOP_MARKET",
+    stopPrice=str(sl_price),
+    closePosition=True,
+    timeInForce="GTC"
+)
+
+print(f"🎯 TP colocado en {tp_price} USDT | 🔴 SL colocado en {sl_price} USDT")
