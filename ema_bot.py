@@ -32,8 +32,10 @@ def main():
 
         client.change_leverage(symbol=symbol, leverage=leverage)
         print(f"✅ Apalancamiento configurado a x{leverage}")
-    except Exception as e:
-        print(f"❌ Error al configurar margen/apalancamiento: {e}")
+
+except Exception as e:
+    print("❌ ERROR INICIAL:", e)
+    raise  # <- Así sabremos exactamente por qué crashea
 
     def get_usdt_balance():
         balances = client.balance()
@@ -49,7 +51,7 @@ def main():
             ema.append(precio * k + ema[-1] * (1 - k))
         return [None] * (periodo - 1) + ema
 
-    while True:
+     while True:
         print("📉 Analizando el mercado...")
         try:
             klines = client.klines(symbol, "15m", limit=100)
