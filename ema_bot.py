@@ -67,7 +67,7 @@ def iniciar_bot():
             ema9 = calcular_ema(closes, 9)
             ema21 = calcular_ema(closes, 21)
 
-            if ema9[-2] < ema21[-2] and ema9[-1] > ema21[-1]:
+            if Ture:
                 print("🟢 Señal de COMPRA detectada")
                 initial_balance = get_usdt_balance()
                 price = float(client.ticker_price(symbol=symbol)["price"])
