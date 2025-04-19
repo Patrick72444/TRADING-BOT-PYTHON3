@@ -24,4 +24,4 @@ while True:
         continue
 
     print("⏳ Esperando 5 minutos...\n")
-    time.sleep(300)
+    time.sleep(5)
