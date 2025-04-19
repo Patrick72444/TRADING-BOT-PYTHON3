@@ -5,6 +5,9 @@ import pandas_ta as ta
 from dotenv import load_dotenv
 from binance.um_futures import UMFutures
 
+# Debug de inicio
+print("🚀 El bot ha arrancado correctamente.")
+
 # Configuración
 load_dotenv()
 api_key = os.getenv("API_KEY")
@@ -32,7 +35,8 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar margen/apalancamiento: {e}")
 
-# Función para obtener el balance USDT actual
+# Funciones
+
 def get_usdt_balance():
     balances = client.balance()
     for b in balances:
@@ -40,7 +44,6 @@ def get_usdt_balance():
             return float(b["balance"])
     return 0.0
 
-# Calcular EMAs manualmente
 def calcular_ema(data, periodo):
     k = 2 / (periodo + 1)
     ema = [sum(data[:periodo]) / periodo]
@@ -50,7 +53,7 @@ def calcular_ema(data, periodo):
 
 # Bucle principal
 while True:
-    print("📉 Analizando el mercado...")
+    print("\n📉 Analizando el mercado...")
     try:
         klines = client.klines(symbol, "15m", limit=100)
         closes = [float(k[4]) for k in klines]
@@ -58,6 +61,9 @@ while True:
         ema9 = calcular_ema(closes, 9)
         ema21 = calcular_ema(closes, 21)
 
+        print("🔍 Entrando en lógica de compra...")
+
+        # Solo para test: fuerza la compra con if True
         if True:
             print("🟢 Señal de COMPRA detectada")
             initial_balance = get_usdt_balance()
@@ -65,7 +71,7 @@ while True:
             capital_operable = initial_balance * leverage
             quantity = round(capital_operable * 0.95 / price, 3)
 
-            order = client.new_order(symbol=symbol, side="BUY", type="MARKET", quantity=quantity)
+            client.new_order(symbol=symbol, side="BUY", type="MARKET", quantity=quantity)
             print(f"✅ Compra ejecutada. Balance inicial: {initial_balance:.2f} USDT")
 
             while True:
@@ -79,31 +85,6 @@ while True:
                     break
                 elif diff <= -1.5:
                     client.new_order(symbol=symbol, side="SELL", type="MARKET", quantity=quantity)
-                    print("🔴 STOP LOSS alcanzado (-1.5% balance)")
-                    break
-                time.sleep(60)
-
-        elif ema9[-2] > ema21[-2] and ema9[-1] < ema21[-1]:
-            print("🔴 Señal de VENTA detectada")
-            initial_balance = get_usdt_balance()
-            price = float(client.ticker_price(symbol=symbol)["price"])
-            capital_operable = initial_balance * leverage
-            quantity = round(capital_operable / price, 4)
-
-            order = client.new_order(symbol=symbol, side="SELL", type="MARKET", quantity=quantity)
-            print(f"✅ Venta ejecutada. Balance inicial: {initial_balance:.2f} USDT")
-
-            while True:
-                current_balance = get_usdt_balance()
-                diff = ((current_balance - initial_balance) / initial_balance) * 100
-                print(f"📉 Variación de balance: {diff:.2f}%")
-
-                if diff >= 3:
-                    client.new_order(symbol=symbol, side="BUY", type="MARKET", quantity=quantity)
-                    print("🎯 TAKE PROFIT alcanzado (+3% balance)")
-                    break
-                elif diff <= -1.5:
-                    client.new_order(symbol=symbol, side="BUY", type="MARKET", quantity=quantity)
                     print("🔴 STOP LOSS alcanzado (-1.5% balance)")
                     break
                 time.sleep(60)
