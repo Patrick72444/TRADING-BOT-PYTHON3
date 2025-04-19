@@ -1,3 +1,4 @@
 python-dotenv
 binance-futures-connector
 pandas
+pandas_ta
