@@ -2,5 +2,5 @@ python-dotenv
 binance-futures-connector
 pandas
 pandas_ta
-flask
+Flask
 numpy==1.23.5
